@@ -1,161 +1,65 @@
-// Main JavaScript for HeartSmile Website
-
+// Main JavaScript functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Mobile Menu Toggle
+    // Mobile menu toggle
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
     const mobileMenu = document.querySelector('.mobile-menu');
     
     if (mobileMenuToggle && mobileMenu) {
         mobileMenuToggle.addEventListener('click', function() {
             mobileMenu.classList.toggle('active');
-            mobileMenuToggle.textContent = mobileMenu.classList.contains('active') ? '✕' : '☰';
         });
     }
+    
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (mobileMenu && mobileMenu.classList.contains('active') && 
+            !mobileMenu.contains(event.target) && 
+            !mobileMenuToggle.contains(event.target)) {
+            mobileMenu.classList.remove('active');
+        }
+    });
     
     // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
-            const targetId = this.getAttribute('href');
-            if (targetId !== '#') {
+            // Only process if it's not just "#" (which would scroll to top)
+            if (this.getAttribute('href') !== '#') {
                 e.preventDefault();
+                const targetId = this.getAttribute('href');
                 const targetElement = document.querySelector(targetId);
+                
                 if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
+                    targetElement.scrollIntoView({
                         behavior: 'smooth'
                     });
                     
                     // Close mobile menu if open
                     if (mobileMenu && mobileMenu.classList.contains('active')) {
                         mobileMenu.classList.remove('active');
-                        mobileMenuToggle.textContent = '☰';
                     }
                 }
             }
         });
     });
     
-    // Meditation Timer Functionality
-    const timerDisplay = document.querySelector('.timer-display');
-    const startBtn = document.querySelector('.timer-start');
-    const pauseBtn = document.querySelector('.timer-pause');
-    const resetBtn = document.querySelector('.timer-reset');
-    const settingCards = document.querySelectorAll('.setting-card');
+    // Add active class to current page in navigation
+    const currentLocation = window.location.pathname;
+    const navLinks = document.querySelectorAll('.nav-main a');
+    const mobileNavLinks = document.querySelectorAll('.mobile-menu a');
     
-    if (timerDisplay && startBtn && pauseBtn && resetBtn) {
-        let countdown;
-        let timeLeft = 10 * 60; // Default 10 minutes
-        let isRunning = false;
-        
-        // Update timer display
-        function updateDisplay() {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-        
-        // Start timer
-        function startTimer() {
-            if (!isRunning) {
-                isRunning = true;
-                countdown = setInterval(() => {
-                    if (timeLeft > 0) {
-                        timeLeft--;
-                        updateDisplay();
-                    } else {
-                        clearInterval(countdown);
-                        isRunning = false;
-                        playEndSound();
-                    }
-                }, 1000);
+    function setActiveNavLink(links) {
+        links.forEach(link => {
+            const linkPath = link.getAttribute('href');
+            if (linkPath && currentLocation.includes(linkPath) && linkPath !== '#' && linkPath !== '/') {
+                link.classList.add('active');
             }
-        }
-        
-        // Pause timer
-        function pauseTimer() {
-            clearInterval(countdown);
-            isRunning = false;
-        }
-        
-        // Reset timer
-        function resetTimer() {
-            clearInterval(countdown);
-            isRunning = false;
-            timeLeft = 10 * 60; // Reset to default or selected time
-            updateDisplay();
-        }
-        
-        // Play sound when timer ends
-        function playEndSound() {
-            const audio = new Audio('sounds/bell.mp3');
-            audio.play();
-        }
-        
-        // Set timer duration
-        function setDuration(minutes) {
-            timeLeft = minutes * 60;
-            updateDisplay();
-        }
-        
-        // Event listeners
-        startBtn.addEventListener('click', startTimer);
-        pauseBtn.addEventListener('click', pauseTimer);
-        resetBtn.addEventListener('click', resetTimer);
-        
-        // Timer setting cards
-        if (settingCards) {
-            settingCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    const duration = parseInt(this.dataset.duration);
-                    if (!isNaN(duration)) {
-                        setDuration(duration);
-                        
-                        // Update active class
-                        settingCards.forEach(c => c.classList.remove('active'));
-                        this.classList.add('active');
-                    }
-                });
-            });
-        }
-        
-        // Initialize display
-        updateDisplay();
+        });
     }
     
-    // Form validation
-    const forms = document.querySelectorAll('form');
+    setActiveNavLink(navLinks);
+    setActiveNavLink(mobileNavLinks);
     
-    forms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            let isValid = true;
-            const requiredFields = form.querySelectorAll('[required]');
-            
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.classList.add('error');
-                } else {
-                    field.classList.remove('error');
-                }
-            });
-            
-            // Email validation
-            const emailField = form.querySelector('input[type="email"]');
-            if (emailField && emailField.value.trim()) {
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailPattern.test(emailField.value)) {
-                    isValid = false;
-                    emailField.classList.add('error');
-                }
-            }
-            
-            if (!isValid) {
-                e.preventDefault();
-            }
-        });
-    });
-    
-    // Language switcher
+    // Language switcher functionality
     const langSwitchers = document.querySelectorAll('.lang-switch a, .mobile-menu-lang a');
     
     langSwitchers.forEach(switcher => {
@@ -171,18 +75,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 let newPath;
                 
                 if (lang === 'ko') {
-                    // If current path is in English or root, switch to Korean
-                    if (currentPath.includes('/en/') || !currentPath.includes('/ko/')) {
-                        newPath = currentPath.replace('/en/', '/ko/').replace(/^\/(?!ko\/)/, '/ko/');
+                    // If current path is in English or doesn't have language suffix
+                    if (!currentPath.includes('.ko.html')) {
+                        if (currentPath.endsWith('.html')) {
+                            newPath = currentPath.replace('.html', '.ko.html');
+                        } else if (currentPath.endsWith('/')) {
+                            newPath = currentPath + 'index.ko.html';
+                        } else {
+                            newPath = currentPath + '/index.ko.html';
+                        }
                     } else {
                         newPath = currentPath;
                     }
                 } else {
-                    // If current path is in Korean, switch to English
-                    if (currentPath.includes('/ko/')) {
-                        newPath = currentPath.replace('/ko/', '/en/');
-                    } else if (!currentPath.includes('/en/')) {
-                        newPath = '/en' + currentPath;
+                    // If current path is in Korean
+                    if (currentPath.includes('.ko.html')) {
+                        newPath = currentPath.replace('.ko.html', '.html');
                     } else {
                         newPath = currentPath;
                     }
@@ -193,19 +101,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Check for stored language preference
+    // Check for stored language preference on page load
     const storedLang = localStorage.getItem('preferredLanguage');
+    const currentPath = window.location.pathname;
+    
     if (storedLang) {
-        const currentPath = window.location.pathname;
-        const isKorean = currentPath.includes('/ko/');
-        const isEnglish = currentPath.includes('/en/');
+        const isKorean = currentPath.includes('.ko.html');
         
         // Redirect if needed
-        if (storedLang === 'ko' && !isKorean) {
-            const newPath = currentPath.replace('/en/', '/ko/').replace(/^\/(?!ko\/)/, '/ko/');
+        if (storedLang === 'ko' && !isKorean && !currentPath.endsWith('index.html')) {
+            const newPath = currentPath.replace('.html', '.ko.html');
             window.location.href = newPath;
-        } else if (storedLang === 'en' && !isEnglish && isKorean) {
-            const newPath = currentPath.replace('/ko/', '/en/');
+        } else if (storedLang === 'en' && isKorean) {
+            const newPath = currentPath.replace('.ko.html', '.html');
             window.location.href = newPath;
         }
     }
